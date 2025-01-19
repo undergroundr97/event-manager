@@ -1,6 +1,8 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
+require 'date'
+require 'time'
 
 # puts 'EventManager initialized.'
 
@@ -47,7 +49,7 @@ contents = CSV.open(
   headers: true,
   header_converters: :symbol
 )
-
+array_time = []
 template_letter = File.read('../form_letter.erb')
 erb_template = ERB.new(template_letter)
 
@@ -55,13 +57,37 @@ contents.each do |row|
   id = row[0]
   name = row[:first_name]
   phone = row[:homephone]
-   
+  registration = row[:regdate]
+  p time_saved = Time.strptime(registration, "%m/%d/%Y %k:%M").to_s.split(' ')
+  hours = time_saved[1].split(":")
+  puts hours[0]
+  array_time << hours[0]
+  # p Time.at(time_saved)
+  # 
+  # time = Time.new(reg_date[1])
+  # p time.strftime("%k:M")
   
-  zipcode = clean_zipcode(row[:zipcode])
+ 
+  # puts Time.new(reg_date)
+  # p date_formated = Date.strptime(reg_date, "%m/%d/%Y")
 
-  legislators = legislators_by_zipcode(zipcode)
-  homephone = phone_formated(phone)
-  form_letter = erb_template.result(binding)
+  
+
+  
+
+  # zipcode = clean_zipcode(row[:zipcode])
+
+  # legislators = legislators_by_zipcode(zipcode)
+  # homephone = phone_formated(phone)
+  # form_letter = erb_template.result(binding)
   # thank_you_letter(id, form_letter)
 end
 
+
+p array_time
+hours_count = array_time.each_with_object(Hash.new(0)) do |hour, count|
+  count[hour] += 1
+end
+p hours_count
+p max_registrations = hours_count.values.max
+p hours_count.select {|hour,count| count == max_registrations}
