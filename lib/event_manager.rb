@@ -7,20 +7,20 @@ require 'time'
 # puts 'EventManager initialized.'
 
 def clean_zipcode(zipcode)
-  zipcode.to_s.rjust(5, '0')[0..4]
+  puts "User ZipCode: #{zipcode.to_s.rjust(5, '0')[0..4]}"
 end
 def legislators_by_zipcode(zip)
   civicinfo = Google::Apis::CivicinfoV2::CivicInfoService.new
 
   civicinfo.key = File.read('segredo.key.txt').strip
   begin
-    legislators = civicinfo.representative_info_by_address(
+      civicinfo.representative_info_by_address(
       address: zip,
       levels: 'country',
       roles: ['legislatorUpperBody', 'legislatorLowerBody']
     ).officials
     rescue
-      'You can find your representatives by visijntng xxx'
+      'You can find your representatives by visiting xxx'
     end
 end
 def thank_you_letter(id,form_letter)
@@ -36,12 +36,57 @@ def phone_formated(phone)
   if formated_phone.to_s.length < 10
     puts "bad number"
   elsif formated_phone.to_s.length == 10
-    puts formated_phone
+    puts "User phone: #{formated_phone}"
   elsif formated_phone.to_s.length == 11 && formated_phone.to_s.split('').first == '1'
-    puts formated_phone.to_s.split('').drop(1).join('')
+    puts "User phone: #{formated_phone.to_s.split('').drop(1).join('')}"
   elsif formated_phone.to_s.length >= 11 && formated_phone.to_s.split('').first != '1'
     puts 'bad number'
   end
+end
+
+def register(registration)
+  array_time = []
+  time_saved = Time.strptime(registration, "%m/%d/%Y %k:%M").to_s.split(' ')
+  hours = time_saved[1].split(":")
+  puts "Registation hour: #{hours.join(':')}"
+  array_time << hours[0]
+  hours_count = array_time.each_with_object(Hash.new(0)) do |hour, count|
+    count[hour] += 1
+  end
+#  hours_count
+ max_registrations = hours_count.values.max
+ hours_count.select {|hour,count| count == max_registrations}
+end
+best_day_week = []
+days_of_week = []
+days = {0 => "Sunday",
+1 => "Monday", 
+2 => "Tuesday",
+3 => "Wednesday",
+4 => "Thursday",
+5 => "Friday",
+6 => "Saturday"}
+def register_day(registration,days,days_of_week,best_day_week)
+  time_saved = Time.strptime(registration, "%m/%d/%Y %k:%M").to_s.split(' ')
+  day_saved = time_saved[0].split('-')
+  integer_day = day_saved.map{|x| x.to_i}
+   yr = integer_day.first + 2000
+   mnth = integer_day[1]
+   dy = integer_day[2]
+   days_of_week << Date.new(yr,mnth,dy).wday
+  
+  total_days = days_of_week.each_with_object(Hash.new(0)) do |wkday, count|
+    count[wkday] += 1
+  end
+   peak_day = total_days.values.max
+   total_days.key(peak_day)
+  placeholder_day = ""
+  days.each do |day_num, name_day|
+    if day_num == total_days.key(peak_day)
+      placeholder_day += name_day
+    end
+  end
+ best_day_week <<  placeholder_day
 end
 puts "Event Manager Initialized"
 contents = CSV.open(
@@ -49,7 +94,7 @@ contents = CSV.open(
   headers: true,
   header_converters: :symbol
 )
-array_time = []
+
 template_letter = File.read('../form_letter.erb')
 erb_template = ERB.new(template_letter)
 
@@ -58,36 +103,18 @@ contents.each do |row|
   name = row[:first_name]
   phone = row[:homephone]
   registration = row[:regdate]
-  p time_saved = Time.strptime(registration, "%m/%d/%Y %k:%M").to_s.split(' ')
-  hours = time_saved[1].split(":")
-  puts hours[0]
-  array_time << hours[0]
-  # p Time.at(time_saved)
-  # 
-  # time = Time.new(reg_date[1])
-  # p time.strftime("%k:M")
-  
- 
-  # puts Time.new(reg_date)
-  # p date_formated = Date.strptime(reg_date, "%m/%d/%Y")
 
-  
-
-  
-
-  # zipcode = clean_zipcode(row[:zipcode])
-
-  # legislators = legislators_by_zipcode(zipcode)
-  # homephone = phone_formated(phone)
-  # form_letter = erb_template.result(binding)
-  # thank_you_letter(id, form_letter)
+  puts name
+  zipcode = clean_zipcode(row[:zipcode])
+  reg_day = register_day(registration,days,days_of_week,best_day_week)
+  reg_hour = register(registration)
+  puts legislators = legislators_by_zipcode(zipcode)
+  homephone = phone_formated(phone)
+  # # form_letter = erb_template.result(binding)
+  # # thank_you_letter(id, form_letter)
+  puts "--------"
 end
 
 
-p array_time
-hours_count = array_time.each_with_object(Hash.new(0)) do |hour, count|
-  count[hour] += 1
-end
-p hours_count
-p max_registrations = hours_count.values.max
-p hours_count.select {|hour,count| count == max_registrations}
+puts "The best hours to adversite on website are between 13 and 16!"
+puts "The best day to advertise on the website is: #{best_day_week.uniq.join}!"
